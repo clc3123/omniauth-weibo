@@ -10,31 +10,14 @@ module OmniAuth
       }
 
       option :authorize_params, {}
+      option :authorize_options, []
 
-      option :authorize_options, [:display, :state]
-
-      option :token_params, {
-        :parse => :json
-      }
-
+      option :token_params, {:parse => :json}
       option :token_options, []
-
-      def request_phase
-        # If you needs to implement CSRF protection, maybe you
-        # need to set the state param in the authorization url,
-        # which will be sent back as param within the callback url
-        # when the user-agent redirect after authorization. 
-        # Add codes here if you want to do so. But OmniAuth-Oauth2's 
-        # default strategy for the request_phase is just fine while
-        # it adds client_id, redirect_uri and response_type in the
-        # authorization url. Also if you want to specify the display
-        # type of authorization window for the user-agent.
-        super
-      end
-      
-      def callback_phase
-        super
-      end
+      option :token_formatter, lambda {|hash|
+        hash[:avaliable_for] = hash[:expires_in]
+        hash[:expires_in] = hash[:remind_in]
+      }
 
       uid do
         raw_info["uid"]
