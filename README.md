@@ -10,7 +10,10 @@ Basic Usage
 In your Gemfile:
 
 ```ruby
-gem 'omniauth-weibo', :git => ''
+gem 'omniauth', '~> 1.0'
+gem 'oauth2',          :git => 'git://github.com/chefchen/oauth2.git'
+gem 'omniauth-oauth2', :git => 'git://github.com/chefchen/omniauth-oauth2.git'
+gem 'omniauth-weibo',  :git => 'git://github.com/chefchen/omniauth-weibo.git'
 ```
 
 A sample app:
@@ -38,8 +41,9 @@ get '/auth/weibo/callback' do
 
   <<-HTML
     <ul>
-      <li>login: #{auth.uid}</li>
-      <li>email: #{auth.info.name}</li>
+      <li>uid: #{auth.uid}</li>
+      <li>nickname: #{auth.info.nickname}</li>
+      <li>gender: #{auth.info.gender}</li>
     </ul>
   HTML
 end
