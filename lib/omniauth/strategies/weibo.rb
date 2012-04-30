@@ -3,19 +3,13 @@ require "omniauth-oauth2"
 module OmniAuth
   module Strategies
     class Weibo < OmniAuth::Strategies::OAuth2
+      args [:client_id, :client_secret]
+
       option :client_options, {
         :site            => "https://api.weibo.com",
         :authorize_url   => "/oauth2/authorize",
         :token_url       => "/oauth2/access_token",
-        :token_parser    => :json,
-        :token_formatter => lambda {|hash|
-          hash[:available_for] = hash['expires_in'].to_i
-          hash[:expires_in]    = hash['remind_in'].to_i
-          hash.delete('expires_in')
-          hash.delete('remind_in')
-        }
       }
-
       option :authorize_params,  {}
       option :authorize_options, []
       option :token_params,      {}
@@ -39,6 +33,11 @@ module OmniAuth
         }
       end
 
+      # There's a little bug concerning token expiration time in
+      # credentials block which is caused by Oauth2 gem during
+      # access_token object initialization. But I don't care because
+      # that's useless at least for now.
+
       def raw_info
         @raw_info ||= access_token.get(
           '/2/users/show.json', :params => {:uid => @user_id}
@@ -51,7 +50,7 @@ module OmniAuth
         verifier = request.params['code']
         client.auth_code.get_token(
           verifier,
-          {:redirect_uri => callback_url}.merge(token_params.to_hash(:symbolize_keys => true)),
+          {:redirect_uri => callback_url, :parse => :json},
           {:mode => :query, :param_name => 'access_token'}
         )
       end
