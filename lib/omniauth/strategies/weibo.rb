@@ -3,56 +3,53 @@ require "omniauth-oauth2"
 module OmniAuth
   module Strategies
     class Weibo < OmniAuth::Strategies::OAuth2
-      args [:client_id, :client_secret]
+      # args [:client_id, :client_secret]
 
       option :client_options, {
-        :site            => "https://api.weibo.com",
-        :authorize_url   => "/oauth2/authorize",
-        :token_url       => "/oauth2/access_token",
+        site:          "https://api.weibo.com",
+        authorize_url: "/oauth2/authorize",
+        token_url:     "/oauth2/access_token",
       }
-      option :authorize_params,  {}
-      option :authorize_options, []
-      option :token_params,      {}
-      option :token_options,     []
+      # http://open.weibo.com/wiki/Oauth2/authorize
+      option :authorize_options, [:scope, :display, :forcelogin, :language]
+      option :token_params,      {parse: json}
 
       uid do
-        @user_id = access_token.params[:uid] || access_token.params['uid']
+        raw_info['id']
       end
 
       info do
         {
-          :nickname => raw_info['screen_name'],
-          :avatar => raw_info['avatar_large'],
-          :gender => raw_info['gender'] == 'm' ? 'm' : 'w'
+          nickname: raw_info['screen_name']
         }
       end
 
       extra do
         {
-          :raw_info => raw_info
+          raw_info: raw_info
         }
       end
 
-      # There's a little bug concerning token expiration time in
-      # credentials block which is caused by Oauth2 gem during
-      # access_token object initialization. But I don't care because
-      # that's useless at least for now.
-
       def raw_info
-        @raw_info ||= access_token.get(
-          '/2/users/show.json', :params => {:uid => @user_id}
-        ).parsed
+        @raw_info ||= begin
+          user_id = access_token.params['uid'] || access_token.params[:uid]
+          access_token.options[:mode] = :query
+          access_token.options[:param_name] = 'access_token'
+          access_token.get('/2/users/show.json', params: {uid: user_id}, parse: :json).parsed
+        end
       end
 
       protected
 
-      def build_access_token
-        verifier = request.params['code']
-        client.auth_code.get_token(
-          verifier,
-          {:redirect_uri => callback_url, :parse => :json},
-          {:mode => :query, :param_name => 'access_token'}
-        )
+      # Customize authorize_params through request params.
+      # It will override those hard coded options during middleware initialization.
+      def authorize_params
+        options.authorize_options.each do |option|
+          if o = request.params[option.to_s]
+            options[option] = o
+          end
+        end
+        super
       end
     end
   end
